@@ -8,52 +8,56 @@ from PIL import Image
 from tqdm import tqdm
 import cv2
 import shutil
+import numpy as np
 
+from pathlib import Path
 
-def save_lmdb(env_path, font_path_char_dict):
-    """[saving lmdb]
-    Args:
-        env_path (string): folder root
-        font_path_char_dict (list): img lists in folder
-    Returns:
-        [json]: {font name: [ch1, ch2, ch3, ch4, ....]}
-    """
-    env = lmdb.open(env_path, map_size=1024 ** 4)
-    valid_dict = {}
+def save_lmdb(env_path, meta_dict, transform=None):
+    env_path = Path(env_path)  # Use pathlib
+    data_dict = dict()  # Initialize outside the try block
+    # Create parent directory (if not exists) before opening LMDB environment
+    os.makedirs(env_path.parent, exist_ok=True) 
+    try:
+        env = lmdb.open(
+            env_path.as_posix().encode('utf-8'),  
+            map_size=1024 ** 5, 
+            max_readers=100, 
+            lock=False  
+        )
 
-    #write_file = open('log.txt', 'w', encoding='utf-8')
-    for fname in tqdm(font_path_char_dict):
-        fontpath = font_path_char_dict[fname]["path"]
-        charlist = font_path_char_dict[fname]["charlist"]
-        unilist = []
-        for char in charlist:
-            img_path = os.path.join(fontpath, char + '.png')
-            if not os.path.exists(img_path):
-                img_path = os.path.join(fontpath, char + '.jpg')
-                print(img_path)
+        with env.begin(write=True) as txn:
+            for font_name, font_meta in tqdm(meta_dict.items()):
+                img_paths = font_meta['path']
+                if font_name == "background":
+                    continue
+                if isinstance(font_meta['charlist'], dict):
+                    all_chars = font_meta['charlist']['upper'] + font_meta['charlist']['lower']
+                else:
+                    all_chars = font_meta['charlist']
+                for img_name in all_chars:
+                    key = f"{font_name}_{img_name}"
+                    img_path = os.path.join(img_paths, f"{img_name}.png").replace("\\", "/")  # Ensure forward slashes
 
-            if len(char) == 1:
-                uni = hex(ord(char))[2:].upper()
-                unilist.append(uni)
-                char_img = cv2.imread(img_path, 0)
-                # char_img = cv2.resize(char_img, (128, 128))
+                    if not os.path.exists(img_path):
+                        continue  # Skip if image doesn't exist
+                    img = Image.open(img_path).convert('RGB')
 
-                char_img = Image.fromarray(char_img)
-                img = io.BytesIO()
-                char_img.save(img, format="PNG")
-                img = img.getvalue()
-                lmdb_key = f"{fname}_{uni}".encode("utf-8")
+                    if transform is not None:
+                        img = transform(img)
+                    _, img_byte = cv2.imencode('.png', np.array(img))
 
-                with env.begin(write=True) as txn:
-                    txn.put(lmdb_key, img)
-            else:
-                pass
-                # write_file.write(str(fontpath)+':')
-                # write_file.write(str(char)+'\n')
+                    # write lmdb
+                    txn.put(key.encode(), img_byte)
+                    if font_name not in data_dict.keys():
+                        data_dict[font_name] = []
+                    data_dict[font_name].append(img_name)
 
-        valid_dict[fname] = unilist
+    except lmdb.Error as e:
+        print(f"LMDB error: {e}")
+        # Add your error handling logic here
 
-    return valid_dict
+    return data_dict
+
 
 
 def getCharList(root):

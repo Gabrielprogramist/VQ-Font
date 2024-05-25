@@ -39,23 +39,39 @@ def getMetaDict(image_root_list, content_name, cr_mapping):
             content_path = file_path
             continue
         all_ch_list = getCharList(file_path)
+        # Store font name, path, and characters with their cases in the meta_dict
         meta_dict[font_name] = {
             "path": file_path,
-            "charlist": None
+            "charlist": all_ch_list
         }
-        meta_dict[font_name]["charlist"] = all_ch_list
 
-        # adaptively choose the possible inference unicodes according to the style unicodes you have.
-        infer_unis = []
-        style_set = set(hex(ord(ch))[2:].upper() for ch in all_ch_list)
+        # Create sets for uppercase and lowercase characters in the style font
+        infer_unis_upper = []
+        infer_unis_lower = []
+        style_set = set()
+        for ch in all_ch_list:
+            case, char = ch.split('_', 1) # Split into case and character
+            style_set.add(char)  # Add character to the style set
+            if case == 'upper':
+                infer_unis_upper.append(char)
+            elif case == 'lower':
+                infer_unis_lower.append(char)
+
+        # Adaptively choose inference unicodes based on available style unicodes
         for uni in cr_mapping:
-            infer_unis.append(chr(int(uni, 16)))
+            char = chr(int(uni, 16))
+            if char.isupper() and char in style_set:
+                infer_unis_upper.append(char)
+            elif char.islower() and char in style_set:
+                infer_unis_lower.append(char)
 
     meta_dict[content_name] = {
         "path": content_path,
         "charlist": None
     }
-    meta_dict[content_name]["charlist"] = infer_unis
+    # Assign uppercase and lowercase characters to the content font separately
+    meta_dict[content_name]["charlist"] = {"upper": infer_unis_upper, "lower": infer_unis_lower}
+
     return meta_dict
 
 
@@ -65,7 +81,7 @@ def build_meta4build_dataset(meta_path, img_path_list, content_name, cr_mapping)
     '''
     out_dict_path = meta_path
     out_dict = getMetaDict(img_path_list, content_name, cr_mapping)
-    with open(out_dict_path, 'w') as fout:
+    with open(out_dict_path, 'w', encoding='utf-8') as fout:
         json.dump(out_dict, fout, indent=4, ensure_ascii=False)
     print("dataset meta:", out_dict_path)
 
@@ -78,10 +94,15 @@ def build_testmeta4inference(target_name, target_root, content_name="kaiti_xiant
     save_path = os.path.join(target_root, "test.json")
     avali_set = {}
 
-    with open(meta_file, 'r') as fin:
-        original_meta = json.load(fin)
+    with open(meta_path, 'r', encoding='utf-8') as f_in:
+        original_meta = json.load(f_in)
 
-    target_ori_unis = original_meta[target_name]
+    # Handle missing key gracefully
+    if target_name not in original_meta:
+        print(f"Warning: Font '{target_name}' not found in meta data. Skipping...")
+        return None, []  # Return None for avail as well
+
+    target_ori_unis = original_meta[target_name]['charlist']  # Get the charlist from the font_meta dictionary
 
     # build test meta file
     test_dict = {
@@ -89,7 +110,7 @@ def build_testmeta4inference(target_name, target_root, content_name="kaiti_xiant
         "gen_unis": original_meta[content_name],
         "ref_unis": target_ori_unis
     }
-    with open(save_path, 'w') as fout:
+    with open(save_path, 'w', encoding='utf-8') as fout:
         json.dump(test_dict, fout, ensure_ascii=False, indent=4)
     print("test metafile save to ", save_path)
     return save_path, avali_set
@@ -107,10 +128,10 @@ def build_dataset4inference(target_img_path, meta_path, content_root, lmdb_path,
     img_path_list = [target_img_path] + [content_root]
     content_name = os.path.basename(content_root)
     build_meta4build_dataset(meta_path, img_path_list, content_name, cr_mapping)
-    with open(meta_path) as f:
+    with open(meta_path, encoding='utf-8') as f:
         fpc_meta = json.load(f)
     valid_dict = save_lmdb(lmdb_path, fpc_meta)
-    with open(json_path, "w") as f:
+    with open(json_path, "w", encoding='utf-8') as f:
         json.dump(valid_dict, f)
     print("lmdb_path:", lmdb_path)
     print("test meta:", json_path)

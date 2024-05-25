@@ -1,6 +1,5 @@
-python3 inference.py ./cfgs/custom.yaml \
---weight \path\to\saved_model.pdparams \
---content_font \path\to\content_imgs \
---img_path \path\to\test_imgs \
+python inference.py ./cfgs/custom.yaml `
+--weight weight\VQ-VAE_chn_.pth `
+--content_font example_data\arial `
+--img_path example_data\vAcade `
 --saving_root ./infer_res
-

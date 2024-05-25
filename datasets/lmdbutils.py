@@ -27,7 +27,7 @@ def load_json(json_path):
     """
     load_json
     """
-    with open(json_path) as f:
+    with open(json_path, encoding='utf-8') as f:
         meta = json.load(f)
 
     return meta
