@@ -20,7 +20,7 @@ def save_lmdb(env_path, meta_dict, transform=None):
     try:
         env = lmdb.open(
             env_path.as_posix().encode('utf-8'),  
-            map_size=1024 ** 5, 
+            map_size=1024 ** 2, 
             max_readers=100, 
             lock=False  
         )

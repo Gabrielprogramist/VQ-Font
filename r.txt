@@ -2,6 +2,6 @@ pip install einops
 pip install opencv-python
 pip install lmdb
 pip install apex
-pip install numpy opencv-python lmdb Pillow tqdm PyYAML pygame scipy scikit-image einops seaborn matplotlib 
+pip install numpy opencv-python lmdb Pillow tqdm PyYAML pygame scipy scikit-image einops seaborn matplotlib sconf 
 
 # torch torchvision torchaudio cuda
