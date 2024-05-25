@@ -108,7 +108,6 @@ def train(args, cfg, ddp_gpu=-1):
     writer = utils.TBDiskWriter(writer_path, eval_image_path, scale=image_scale)
 
     args_str = dump_args(args)
-    # if is_main_worker(ddp_gpu):
     logger.info("Run Argv:\n> {}".format(" ".join(sys.argv)))
     logger.info("Args:\n{}".format(args_str))
     logger.info("Configs:\n{}".format(cfg.dumps()))
@@ -119,16 +118,16 @@ def train(args, cfg, ddp_gpu=-1):
 
     trn_transform, val_transform = setup_transforms(cfg)
 
-    env = load_lmdb(cfg.data_path)  # 载入数据库环境lmdb
-    env_get = lambda env, x, y, transform: transform(read_data_from_lmdb(env, f'{x}_{y}')['img'])
-    # x传入font_path;y传入字符的Unicode编码
-    data_meta = load_json(cfg.data_meta)  # load train.json
+    env = load_lmdb(cfg.data_path)  # Load LMDB environment
+    env_get = lambda env, x, y, transform: transform(read_data_from_lmdb(env, f'{x}_{y.split("_")[1]}')['img'])
+    # Adjusted to handle filenames in the format lower/upper_char_style.png
+    data_meta = load_json(cfg.data_meta)  # Load train.json
 
     get_trn_loader = get_comb_trn_loader
     get_cv_loaders = get_cv_comb_loaders
-    Trainer = CombinedTrainer  # 定义trainer
+    Trainer = CombinedTrainer  # Define trainer
 
-    # 定义训练dset以及dataloader
+    # Define training dataset and dataloader
     trn_dset, trn_loader = get_trn_loader(env,
                                           env_get,
                                           cfg,
@@ -138,7 +137,7 @@ def train(args, cfg, ddp_gpu=-1):
                                           shuffle=True,
                                           drop_last=True)
 
-    # 定义验证dset以及dataloader
+    # Define validation dataset and dataloader
     cv_loaders = get_cv_loaders(env,
                                 env_get,
                                 cfg,
@@ -149,7 +148,7 @@ def train(args, cfg, ddp_gpu=-1):
                                 drop_last=True)
 
     logger.info("Build Few-shot model ...")
-    # generator
+    # Generator
     g_kwargs = cfg.get("g_args", {})
     g_cls = generator_dispatch()
     gen = g_cls(1, cfg.C, 1, cfg, **g_kwargs)
@@ -162,21 +161,17 @@ def train(args, cfg, ddp_gpu=-1):
     if cfg.gan_w > 0.:
         d_kwargs = cfg.get("d_args", {})
         disc = disc_builder(cfg.C, trn_dset.n_fonts, trn_dset.n_unis, **d_kwargs)
-        # trn_dset.n_fonts训练集中的字体数,trn_dset.n_unis数据集中所有的字符
+        # trn_dset.n_fonts: number of fonts in training set, trn_dset.n_unis: number of characters in dataset
         disc.cuda()
         disc.apply(weights_init(cfg.init))
     else:
         disc = None
 
     g_optim = optim.Adam(gen.parameters(), lr=cfg.g_lr, betas=cfg.adam_betas)
-    d_optim = optim.Adam(disc.parameters(), lr=cfg.d_lr, betas=cfg.adam_betas)
+    d_optim = optim.Adam(disc.parameters(), lr=cfg.d_lr, betas=cfg.adam_betas) if disc is not None else None
     gen_scheduler = torch.optim.lr_scheduler.StepLR(g_optim, step_size=cfg['step_size'], gamma=cfg['gamma'])
     dis_scheduler = torch.optim.lr_scheduler.StepLR(d_optim, step_size=cfg['step_size'], gamma=cfg['gamma']) \
         if disc is not None else None
-
-    # logger.info("Gen struct:{}"
-    #             "Dis struct:{}"
-    #             .format(gen, disc))
 
     st_step = 1
     if args.resume:
@@ -185,8 +180,6 @@ def train(args, cfg, ddp_gpu=-1):
             args.resume, st_step - 1, loss))
         if cfg.overwrite:
             st_step = 1
-        else:
-            pass
 
     envaluator = Evaluator(env,
                            env_get,
@@ -204,7 +197,7 @@ def train(args, cfg, ddp_gpu=-1):
     with open(cfg.sim_path, 'r+') as file:
         chars_sim = file.read()
 
-    chars_sim_dict = json.loads(chars_sim)  # 将json格式文件转化为python的字典文件
+    chars_sim_dict = json.loads(chars_sim)  # Convert JSON format file to Python dictionary
 
     trainer.train(trn_loader, st_step, cfg["iter"], component_objects, chars_sim_dict)
 

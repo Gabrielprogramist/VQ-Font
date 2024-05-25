@@ -11,7 +11,7 @@ init: xavier
 num_channels: 256
 
 content_font: ""
-language: "chn"
+language: "kz_eng"
 
 data_path: /path/to/lmdb
 data_meta: meta/train.json

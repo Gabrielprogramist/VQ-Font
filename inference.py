@@ -21,14 +21,13 @@ from datasets import get_fixedref_loader
 
 
 def getCharList(root):
-    '''
-    getCharList
-    '''
     charlist = []
     for img_path in glob(root + '/*.jpg') + glob(root + '/*.png'):
-        ch = os.path.basename(img_path).split('.')[0]
-        charlist.append(ch)
+        basename = os.path.basename(img_path).split('.')[0]
+        char = basename.split('_')[1]  # Extract the character part from the filename
+        charlist.append(char)
     return charlist
+
 
 
 def getMetaDict(image_root_list, content_name, cr_mapping):
@@ -39,40 +38,24 @@ def getMetaDict(image_root_list, content_name, cr_mapping):
             content_path = file_path
             continue
         all_ch_list = getCharList(file_path)
-        # Store font name, path, and characters with their cases in the meta_dict
         meta_dict[font_name] = {
             "path": file_path,
-            "charlist": all_ch_list
+            "charlist": None
         }
+        meta_dict[font_name]["charlist"] = all_ch_list
 
-        # Create sets for uppercase and lowercase characters in the style font
-        infer_unis_upper = []
-        infer_unis_lower = []
-        style_set = set()
-        for ch in all_ch_list:
-            case, char = ch.split('_', 1) # Split into case and character
-            style_set.add(char)  # Add character to the style set
-            if case == 'upper':
-                infer_unis_upper.append(char)
-            elif case == 'lower':
-                infer_unis_lower.append(char)
-
-        # Adaptively choose inference unicodes based on available style unicodes
+        infer_unis = []
+        style_set = set(hex(ord(ch.split('_')[1]))[2:].upper() for ch in all_ch_list)
         for uni in cr_mapping:
-            char = chr(int(uni, 16))
-            if char.isupper() and char in style_set:
-                infer_unis_upper.append(char)
-            elif char.islower() and char in style_set:
-                infer_unis_lower.append(char)
+            infer_unis.append(chr(int(uni, 16)))
 
     meta_dict[content_name] = {
         "path": content_path,
         "charlist": None
     }
-    # Assign uppercase and lowercase characters to the content font separately
-    meta_dict[content_name]["charlist"] = {"upper": infer_unis_upper, "lower": infer_unis_lower}
-
+    meta_dict[content_name]["charlist"] = infer_unis
     return meta_dict
+
 
 
 def build_meta4build_dataset(meta_path, img_path_list, content_name, cr_mapping):
@@ -87,33 +70,26 @@ def build_meta4build_dataset(meta_path, img_path_list, content_name, cr_mapping)
 
 
 def build_testmeta4inference(target_name, target_root, content_name="kaiti_xiantu"):
-    '''
-    build_testmeta4inference
-    '''
     meta_file = os.path.join(target_root, "dataset_meta.json")
     save_path = os.path.join(target_root, "test.json")
     avali_set = {}
 
-    with open(meta_path, 'r', encoding='utf-8') as f_in:
-        original_meta = json.load(f_in)
+    with open(meta_file, 'r', encoding='utf-8') as fin:
+        original_meta = json.load(fin)
 
-    # Handle missing key gracefully
-    if target_name not in original_meta:
-        print(f"Warning: Font '{target_name}' not found in meta data. Skipping...")
-        return None, []  # Return None for avail as well
-
-    target_ori_unis = original_meta[target_name]['charlist']  # Get the charlist from the font_meta dictionary
+    target_ori_unis = original_meta[target_name]
 
     # build test meta file
     test_dict = {
         "gen_fonts": [target_name],
-        "gen_unis": original_meta[content_name],
+        "gen_unis": [chr(int(uni, 16)) for uni in original_meta[content_name]],
         "ref_unis": target_ori_unis
     }
     with open(save_path, 'w', encoding='utf-8') as fout:
         json.dump(test_dict, fout, ensure_ascii=False, indent=4)
     print("test metafile save to ", save_path)
     return save_path, avali_set
+
 
 
 def build_dataset4inference(target_img_path, meta_path, content_root, lmdb_path, json_path, cr_mapping):
@@ -194,7 +170,7 @@ def eval_ckpt(args, cfg, avail, target_root):
 
     bs_component_embeddings = get_codebook_detach(component_objects, cfg["batch_size"])
 
-    with open(cfg.sim_path, 'r+') as file:
+    with open(cfg.sim_path, 'r+', encoding='utf-8') as file:
         chars_sim = file.read()
 
     chars_sim_dict = json.loads(chars_sim)  # 将json格式文件转化为python的字典文件
@@ -234,7 +210,7 @@ if __name__ == "__main__":
     target_name = os.path.basename(target_folder)  # 目标font的名称
     target_root = os.path.join(saving_root, target_name)  # 存放生成的目标font的路径
 
-    with open(cfg.all_content_json, 'r') as f:
+    with open(cfg.all_content_json, 'r', encoding='utf-8') as f:
         cr_mapping = json.load(f)
 
     # create directory
