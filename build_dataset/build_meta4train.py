@@ -9,7 +9,6 @@ from tqdm import tqdm
 import cv2
 import shutil
 import numpy as np
-
 from pathlib import Path
 
 def save_lmdb(env_path, font_path_char_dict):
@@ -23,7 +22,6 @@ def save_lmdb(env_path, font_path_char_dict):
     env = lmdb.open(env_path, map_size=1024 ** 3)
     valid_dict = {}
 
-    #write_file = open('log.txt', 'w', encoding='utf-8')
     for fname in tqdm(font_path_char_dict):
         fontpath = font_path_char_dict[fname]["path"]
         charlist = font_path_char_dict[fname]["charlist"]
@@ -32,33 +30,37 @@ def save_lmdb(env_path, font_path_char_dict):
             img_path = os.path.join(fontpath, char + '.png')
             if not os.path.exists(img_path):
                 img_path = os.path.join(fontpath, char + '.jpg')
-                print(img_path)
+                if not os.path.exists(img_path):
+                    print(f"Image not found for: {img_path}")
+                    continue
 
-            if len(char) == 1:
-                uni = hex(ord(char))[2:].upper()
+            parts = char.split('_')
+            if len(parts) == 3:
+                char_type, char_letter, style = parts
+                uni = hex(ord(char_letter))[2:].upper()
                 unilist.append(uni)
-                char_img = cv2.imread(img_path, 0)
-                # char_img = cv2.resize(char_img, (128, 128))
-
+                
+                try:
+                    pil_image = Image.open(img_path)
+                    char_img = np.array(pil_image)
+                    char_img = cv2.cvtColor(char_img, cv2.COLOR_RGB2BGR)
+                except Exception as e:
+                    print(f"Failed to read image: {img_path}. Error: {e}")
+                    continue
+                
                 char_img = Image.fromarray(char_img)
                 img = io.BytesIO()
                 char_img.save(img, format="PNG")
                 img = img.getvalue()
                 lmdb_key = f"{fname}_{uni}".encode("utf-8")
-
                 with env.begin(write=True) as txn:
                     txn.put(lmdb_key, img)
             else:
-                pass
-                # write_file.write(str(fontpath)+':')
-                # write_file.write(str(char)+'\n')
+                print(f"Skipping invalid char format: {char}")
 
         valid_dict[fname] = unilist
 
     return valid_dict
-
-
-
 
 
 def getCharList(root):
@@ -70,9 +72,8 @@ def getCharList(root):
             charlist.append(basename)  # Include the full name without extension
         else:
             print(f"Skipping invalid char format: {basename}")
+    print(f"Characters found in {root}: {charlist}")
     return charlist
-
-
 
 
 def getMetaDict(font_path_list):
@@ -92,6 +93,9 @@ def getMetaDict(font_path_list):
             "charlist": None
         }
         meta_dict[font_name]["charlist"] = getCharList(font_path)
+        # Debugging output to ensure files are read correctly
+        if not meta_dict[font_name]["charlist"]:
+            print(f"No characters found for font: {font_name} in path: {font_path}")
     return meta_dict
 
 
@@ -210,5 +214,3 @@ if __name__ == "__main__":
     args = parser.parse_args()
     build_meta4train_lmdb(args)
     build_train_meta(args)
-
-
