@@ -15,13 +15,13 @@ def cyclize(loader):
 def uniform_indice(end, n_sample, duplicate=False, st=None):
     """ Sample from [0, end) with (almost) equidistant interval """
     if end <= 0:
-        return np.empty(0, dtype=np.int)
+        return np.empty(0, dtype=np.int32)
 
     if not duplicate and n_sample > end:
         n_sample = end
 
     # NOTE with endpoint=False, np.linspace does not sample the `end` value
-    indice = np.linspace(0, end, num=n_sample, dtype=np.int, endpoint=False)
+    indice = np.linspace(0, end, num=n_sample, dtype=np.int32, endpoint=False)
     if st is None and end:
         st = (end-1 - indice[-1]) // 2
     return indice + st
