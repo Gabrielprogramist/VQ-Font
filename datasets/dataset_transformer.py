@@ -38,14 +38,19 @@ class CombTrainDataset(Dataset):
         return [str(trg_uni[i]) for i in range(0, self.num_Positive_samples * 4)]
 
     def sample_pair_style(self, font, ref_unis):
-
-        try:
-            imgs = torch.concat([self.env_get(self.env, font, uni, self.transform) for uni in ref_unis])
-            # print(imgs.shape)
-        except:
+        imgs = []
+        for uni in ref_unis:
+            try:
+                img = self.env_get(self.env, font, uni, self.transform)
+                imgs.append(img)
+            except:
+                print(f"Warning: Image not found for font {font}, character {uni}")
+                continue  # Skip this character if not found
+        if imgs:
+            return torch.stack(imgs)
+        else:
             return None
 
-        return imgs
 
     def __getitem__(self, index):
         font_idx = index % self.n_fonts #获取到font的索引
@@ -63,7 +68,7 @@ class CombTrainDataset(Dataset):
             # print(trg_unis)
             # print(ref_unis)
 
-            style_imgs = torch.stack([self.sample_pair_style(font_name, ref_unis[i*3:(i+1)*3])for i in range(0, self.num_Positive_samples)], 0)
+            style_imgs = torch.stack([self.sample_pair_style(font_name, ref_unis[i*3:(i+1)*3]) for i in range(0, self.num_Positive_samples)], 0)
 
             # style_imgs = self.sample_pair_style(font_name, ref_unis) #参考字符的图片,len=3*n,n为正样本数量
             # print("style_imgs",style_imgs.shape)

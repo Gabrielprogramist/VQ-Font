@@ -1,1 +1,1 @@
-python3 train.py test cfgs/custom.yaml
+python train.py test cfgs/custom.yaml
