@@ -34,29 +34,28 @@ def load_json(json_path):
 
 
 def read_data_from_lmdb(env, lmdb_key):
-    """
-    read_data_from_lmdb
-    """
     with env.begin(write=False) as txn:
         data = txn.get(lmdb_key.encode())
+        if data is None:
+            print(f"Warning: Key {lmdb_key} not found in LMDB")
+            return None
         data = deserialize_data(data)
     return data
 
 
+
 def deserialize_data(data):
-    """
-    deserialize_data
-    """
     if data is None:
         return None
-
     buf = io.BytesIO()
     buf.write(data)
     buf.seek(0)
-    img = Image.open(buf)
-
+    try:
+        img = Image.open(buf)
+    except Exception as e:
+        print(f"Failed to open image: {e}")
+        return None
     unpacked_data = {
         "img": img
     }
-
     return unpacked_data
