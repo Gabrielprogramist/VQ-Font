@@ -1,0 +1,82 @@
+[37m[36mINFO[0m[0m::05/28 15:28:40 | Run Argv:
+> train.py test cfgs/custom.yaml
+[37m[36mINFO[0m[0m::05/28 15:28:40 | Args:
+name            = test
+config_paths    = ['cfgs/custom.yaml']
+resume          = None
+use_unique_name = False
+[37m[36mINFO[0m[0m::05/28 15:28:40 | Configs:
+overwrite: False
+work_dir: results\your_task_name
+batch_size: 8
+comb_iter: 800000
+seed: 2
+g_lr: 0.0002
+d_lr: 0.0004
+n_workers: 15
+adam_betas: 
+  - 0.0
+  - 0.9
+init: xavier
+num_channels: 256
+content_font: arial
+language: kz_eng
+data_path: ./results/your_task_name/lmdb/
+data_meta: ./results/your_task_name/meta/train.json
+dset_aug: 
+  normalize: True
+cv_n_unis: 20
+cv_n_fonts: 9
+C: 32
+input_size: 128
+g_args: 
+  comp_enc: 
+    C_out: 256
+    norm: in
+    activ: relu
+  dec: 
+    norm: in
+    activ: relu
+    out: sigmoid
+  content_enc: 
+    C_out: 256
+    content_sigmoid: False
+  integrator_args: 
+    norm: in
+    activ: relu
+d_args: 
+  w_norm: spectral
+  activ: relu
+  gap_activ: relu
+  res_scale_var: False
+pixel_loss_type: L1
+pixel_w: 1.0
+gan_w: 1.0
+contrastive_w: 0.1
+save: all-last
+print_freq: 10
+val_freq: 50
+save_freq: 500
+tb_freq: 100
+use_half: False
+use_ddp: False
+vae_pth: ./weight/VQ-VAE_Parms_chn_.pth
+sim_path: ./weight/all_char_similarity_unicode.json
+all_content_json: ./meta/trian_val_all_characters.json
+num_embeddings: 100
+vae_batch_size: 256
+vae_lr: 0.001
+vae_iter: 10000
+num_heads: 8
+kshot: 3
+num_positive_samples: 2
+iter: 500000
+step_size: 10000
+gamma: 0.95
+unique_name: test
+name: test
+[37m[36mINFO[0m[0m::05/28 15:28:40 | Unique name: test
+[37m[36mINFO[0m[0m::05/28 15:28:40 | Get dataset ...
+[37m[36mINFO[0m[0m::05/28 15:28:40 | Build Few-shot model ...
+[37m[36mINFO[0m[0m::05/28 15:28:43 | Load pre-train model...
+[37m[36mINFO[0m[0m::05/28 15:28:44 | Start training FewShot ...

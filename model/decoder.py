@@ -16,11 +16,11 @@ class Integrator(nn.Module):
             comps [B, 3, mem_shape]: component features
         """
         if reference==None:
-            inputs = torch.concat((comps, content), 1)
+            inputs = torch.cat((comps, content), 1)
             out = self.integrate_layer(inputs)
             return out
         else:
-            inputs = torch.concat((comps, content, reference), 1)
+            inputs = torch.cat((comps, content, reference), 1)
             out = self.integrate_layer(inputs)
             return out
 
