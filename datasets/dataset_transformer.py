@@ -43,9 +43,9 @@ class CombTrainDataset(Dataset):
             if len(ref_unis) < 3:
                 logging.error(f"Not enough reference unis for font {font}: {ref_unis}")
                 return None
-            logging.debug(f"Trying to sample pair style images for font {font} with unis {ref_unis}")
+            # logging.debug(f"Trying to sample pair style images for font {font} with unis {ref_unis}")
             imgs = torch.cat([self.env_get(self.env, font, uni, self.transform) for uni in ref_unis])
-            logging.debug(f"Sampled pair style images for font {font} with unis {ref_unis}: shape {imgs.shape}")
+            # logging.debug(f"Sampled pair style images for font {font} with unis {ref_unis}: shape {imgs.shape}")
         except Exception as e:
             logging.error(f"Error sampling pair style images for font {font} with unis {ref_unis}: {e}")
             return None
@@ -55,7 +55,7 @@ class CombTrainDataset(Dataset):
     def __getitem__(self, index):
         font_idx = index % self.n_fonts
         font_name = self.fonts[font_idx]
-        logging.debug(f"Getting item for index {index}: font {font_name} (index {font_idx})")
+        # logging.debug(f"Getting item for index {index}: font {font_name} (index {font_idx})")
         while True:
             style_unis = self.random_get_trg(self.avails, font_name)
             trg_unis = style_unis[:self.num_Positive_samples]
@@ -81,12 +81,12 @@ class CombTrainDataset(Dataset):
                 sample_index,
                 ref_unis[:self.k_shot]
             )
-            logging.debug(f"Returning dataset item: {ret}")
+            # logging.debug(f"Returning dataset item: {ret}")
             return ret
 
     def __len__(self):
         length = sum([len(v) for v in self.avails.values()])
-        logging.debug(f"Dataset length: {length}")
+        # logging.debug(f"Dataset length: {length}")
         return length
 
     @staticmethod
@@ -104,7 +104,7 @@ class CombTrainDataset(Dataset):
             torch.cat(trg_sample_index),
             ref_unis
         )
-        logging.debug(f"Collate function output: {ret}")
+        # logging.debug(f"Collate function output: {ret}")
         return ret
 
 
@@ -130,11 +130,11 @@ class CombTestDataset(Dataset):
                        }
 
         self.to_int = to_int_dict[language.lower()]
-        logging.debug(f"Initialized CombTestDataset with {len(self.fonts)} fonts")
+        # logging.debug(f"Initialized CombTestDataset with {len(self.fonts)} fonts")
 
     def sample_pair_style(self, avail_unis):
         style_unis = random.sample(avail_unis, 3)
-        logging.debug(f"Sampled pair style unis: {style_unis}")
+        # logging.debug(f"Sampled pair style unis: {style_unis}")
         return list(style_unis)
 
     def __getitem__(self, index):
@@ -168,12 +168,12 @@ class CombTestDataset(Dataset):
                 trg_img = torch.ones(size=(1, 128, 128))
                 logging.error(f"Error getting target image for font {font_name} and uni {trg_uni}: {e}")
             ret += (trg_img,)
-        logging.debug(f"Returning dataset item: {ret}")
+        # logging.debug(f"Returning dataset item: {ret}")
         return ret
 
     def __len__(self):
         length = len(self.fus)
-        logging.debug(f"Dataset length: {length}")
+        # logging.debug(f"Dataset length: {length}")
         return length
 
     @staticmethod
@@ -193,7 +193,7 @@ class CombTestDataset(Dataset):
         if left:
             trg_imgs = left[0]
             ret += (torch.cat(trg_imgs).unsqueeze_(1),)
-        logging.debug(f"Collate function output: {ret}")
+        # logging.debug(f"Collate function output: {ret}")
         return ret
 
 
@@ -206,13 +206,13 @@ class CombTrain_VQ_VAE_dataset(Dataset):
         self.img_path = root
         self.transform = transform
         self.imgs = self.read_file(self.img_path)
-        logging.debug(f"Initialized CombTrain_VQ_VAE_dataset with {len(self.imgs)} images")
+        # logging.debug(f"Initialized CombTrain_VQ_VAE_dataset with {len(self.imgs)} images")
 
     def read_file(self, path):
         files_list = os.listdir(path)
         file_path_list = [os.path.join(path, img) for img in files_list]
         file_path_list.sort()
-        logging.debug(f"Read files from path: {path}")
+        # logging.debug(f"Read files from path: {path}")
         return file_path_list
 
     def __getitem__(self, index):
@@ -220,12 +220,12 @@ class CombTrain_VQ_VAE_dataset(Dataset):
         img = Image.open(img_name)
         if self.transform is not None:
             img = self.transform(img)
-        logging.debug(f"Returning image: {img_name}")
+        # logging.debug(f"Returning image: {img_name}")
         return img
 
     def __len__(self):
         length = len(self.imgs)
-        logging.debug(f"Dataset length: {length}")
+        # logging.debug(f"Dataset length: {length}")
         return length
 
 
@@ -252,12 +252,12 @@ class FixedRefDataset(Dataset):
                        "thai": lambda x: int("".join([f'{ord(each):04X}' for each in x]), 16)
                        }
         self.to_int = to_int_dict[language.lower()]
-        logging.debug(f"Initialized FixedRefDataset with {len(self.fus)} items")
+        # logging.debug(f"Initialized FixedRefDataset with {len(self.fus)} items")
 
     def sample_pair_style(self, font, style_uni):
         style_unis = random.sample(style_uni, 3)
         imgs = torch.cat([self.env_get(self.env, font, uni, self.transform) for uni in style_unis])
-        logging.debug(f"Sampled pair style images for font {font} with unis {style_unis}")
+        # logging.debug(f"Sampled pair style images for font {font} with unis {style_unis}")
         return imgs, list(style_unis)
 
     def __getitem__(self, index):
@@ -285,12 +285,12 @@ class FixedRefDataset(Dataset):
         if self.ret_targets:
             trg_img = self.env_get(self.env, fname, trg_uni, self.transform)
             ret += (trg_img,)
-        logging.debug(f"Returning dataset item: {ret}")
+        # logging.debug(f"Returning dataset item: {ret}")
         return ret
 
     def __len__(self):
         length = len(self.fus)
-        logging.debug(f"Dataset length: {length}")
+        # logging.debug(f"Dataset length: {length}")
         return length
 
     @staticmethod
@@ -311,5 +311,5 @@ class FixedRefDataset(Dataset):
         if left:
             trg_imgs = left[0]
             ret += (torch.cat(trg_imgs).unsqueeze_(1),)
-        logging.debug(f"Collate function output: {ret}")
+        # logging.debug(f"Collate function output: {ret}")
         return ret

@@ -7,7 +7,7 @@ work_dir: ./results/your_task_name/ # workspace
 data_path: ./results/your_task_name/lmdb/  # path/to/saved/lmdb
 data_meta: ./results/your_task_name/meta/train.json  # meta/train.json
 all_content_json: ./meta/trian_val_all_characters.json
-content_font: "arial" # content font
+content_font: "arial_136" # content font
 
 num_embeddings: 100
 vae_batch_size: 256

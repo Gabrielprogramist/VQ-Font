@@ -19,17 +19,13 @@ import logging
 def log_env_get(env, x, y, transform):
     key = None  # Определяем переменную key в любом случае
     try:
-        # Проверка на наличие разделителя
-        if "_" not in y:
-            raise ValueError(f"Invalid format for y: {y}")
-        
-        key = f'{x}_{y.split("_")[1]}'
-        logging.debug(f"Fetching key from LMDB: {key}")
+        key = f'{x}_{y}'
+        # logging.debug(f"Fetching key from LMDB: {key}")
         data = read_data_from_lmdb(env, key)
         if data is None or 'img' not in data:
             logging.error(f"No data found for key {key}")
             return None
-        logging.debug(f"Data fetched for key {key}")
+        # logging.debug(f"Data fetched for key {key}")
         return transform(data['img'])
     except Exception as e:
         logging.error(f"Error fetching data for key {key}: {e}")
@@ -71,8 +67,8 @@ def setup_args_and_config():
 
     if cfg.save_freq % cfg.val_freq:
         raise ValueError("save_freq has to be multiple of val_freq.")
-    logging.debug(f"Arguments: {args}")
-    logging.debug(f"Configuration: {cfg}")
+    # logging.debug(f"Arguments: {args}")
+    # logging.debug(f"Configuration: {cfg}")
 
     return args, cfg
 
@@ -90,8 +86,8 @@ def setup_transforms(cfg):
     trn_transform = transforms.Compose(tensorize_transform)
     val_transform = transforms.Compose(tensorize_transform)
 
-    logging.debug(f"Training transform: {trn_transform}")
-    logging.debug(f"Validation transform: {val_transform}")
+    # logging.debug(f"Training transform: {trn_transform}")
+    # logging.debug(f"Validation transform: {val_transform}")
 
     return trn_transform, val_transform
 
