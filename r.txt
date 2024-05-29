@@ -3,5 +3,6 @@ pip install opencv-python
 pip install lmdb
 pip install apex
 pip install numpy opencv-python lmdb Pillow tqdm PyYAML pygame scipy scikit-image einops seaborn matplotlib sconf 
+pip install tensorboard
 
 # torch torchvision torchaudio cuda
