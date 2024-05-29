@@ -15,7 +15,25 @@ from trainer import load_checkpoint, CombinedTrainer
 from model import generator_dispatch, disc_builder
 from model.modules import weights_init
 from evaluator import Evaluator
-
+import logging
+def log_env_get(env, x, y, transform):
+    key = None  # Определяем переменную key в любом случае
+    try:
+        # Проверка на наличие разделителя
+        if "_" not in y:
+            raise ValueError(f"Invalid format for y: {y}")
+        
+        key = f'{x}_{y.split("_")[1]}'
+        logging.debug(f"Fetching key from LMDB: {key}")
+        data = read_data_from_lmdb(env, key)
+        if data is None or 'img' not in data:
+            logging.error(f"No data found for key {key}")
+            return None
+        logging.debug(f"Data fetched for key {key}")
+        return transform(data['img'])
+    except Exception as e:
+        logging.error(f"Error fetching data for key {key}: {e}")
+        return None
 
 def setup_args_and_config():
     """
@@ -53,6 +71,8 @@ def setup_args_and_config():
 
     if cfg.save_freq % cfg.val_freq:
         raise ValueError("save_freq has to be multiple of val_freq.")
+    logging.debug(f"Arguments: {args}")
+    logging.debug(f"Configuration: {cfg}")
 
     return args, cfg
 
@@ -69,6 +89,10 @@ def setup_transforms(cfg):
 
     trn_transform = transforms.Compose(tensorize_transform)
     val_transform = transforms.Compose(tensorize_transform)
+
+    logging.debug(f"Training transform: {trn_transform}")
+    logging.debug(f"Validation transform: {val_transform}")
+
     return trn_transform, val_transform
 
 
@@ -86,6 +110,8 @@ def load_pretrain_vae_model(load_path='path/to/save/pre-train_VQ-VAE', gen=None)
         param.data = vae_state_dict[del_key[i]]
         i += 1
         param.requires_grad = False
+
+    logging.debug(f"Loaded pre-trained VAE model from {load_path}")
 
     return component_objects
 
@@ -119,7 +145,7 @@ def train(args, cfg, ddp_gpu=-1):
     trn_transform, val_transform = setup_transforms(cfg)
 
     env = load_lmdb(cfg.data_path)  # Load LMDB environment
-    env_get = lambda env, x, y, transform: transform(read_data_from_lmdb(env, f'{x}_{y.split("_")[1]}')['img'])
+    env_get = lambda env, x, y, transform: log_env_get(env, x, y, transform)
     # Adjusted to handle filenames in the format lower/upper_char_style.png
     data_meta = load_json(cfg.data_meta)  # Load train.json
 
@@ -203,6 +229,7 @@ def train(args, cfg, ddp_gpu=-1):
 
 
 def main():
+    logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
     args, cfg = setup_args_and_config()
     np.random.seed(cfg["seed"])
     torch.manual_seed(cfg["seed"])
