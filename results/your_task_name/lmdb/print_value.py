@@ -6,7 +6,7 @@ from matplotlib import pyplot as plt
 
 def print_lmdb_contents(db_path):
     # Проверка наличия файла data.mdb
-    if not os.path.isfile(os.path.join(db_path, 'data.mdb')):
+    if not os.path.isfile(os.path.join(db_path, 'lock.mdb')):
         print(f"Файл data.mdb не найден в {db_path}")
         return
     
@@ -15,8 +15,10 @@ def print_lmdb_contents(db_path):
     with env.begin() as txn:
         # Итерация по всем ключам и значениям
         cursor = txn.cursor()
+        i = 0
         for key, value in cursor:
-            print(f"Key: {key}")
+            i+=1
+            print(f"Key {i}: {key}")
             # Декодирование изображения из value
             image = cv2.imdecode(np.frombuffer(value, np.uint8), cv2.IMREAD_COLOR)
             if image is not None:

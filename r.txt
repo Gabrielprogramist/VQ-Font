@@ -5,4 +5,6 @@ pip install apex
 pip install numpy opencv-python lmdb Pillow tqdm PyYAML pygame scipy scikit-image einops seaborn matplotlib sconf 
 pip install tensorboard
 
-# torch torchvision torchaudio cuda
+# torch torchvision torchaudio cuda pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+# conda install -c conda-forge opencv -y
+# conda update --all
