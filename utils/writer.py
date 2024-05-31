@@ -22,7 +22,10 @@ class DiskWriter(Writer):
         #  raise Exception("DiskWriter supports add_image only")
 
     def add_image(self, tag, img_tensor, global_step):
-        path = self.img_dir / "{:07d}-{}.png".format(global_step, tag)
+        if tag.isupper():
+            path = self.img_dir / "{:07d}-{}.png".format(global_step, tag)
+        else:
+            path = self.img_dir / "{:07d}-{}.jpg".format(global_step, tag)
         save_tensor_to_image(img_tensor, path, self.scale)
 
 

@@ -143,7 +143,10 @@ class Evaluator:
                     if final_img.shape[-1] == 1:
                         final_img = final_img.squeeze(-1)  # [128, 128]
 
-                    dst_path = os.path.join(output_folder, ch + '.png')
+                    if ch.isupper():
+                        dst_path = os.path.join(output_folder, ch + '.png')
+                    else:
+                        dst_path = os.path.join(output_folder, ch + '.jpg')
                     ch_list_check.append(ch)
                     cv2.imwrite(dst_path, final_img)
             i += 1

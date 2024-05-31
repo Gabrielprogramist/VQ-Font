@@ -74,7 +74,10 @@ def font2image(input_file, output_paths, characters, size):
 
         if word in AZ:  # for uppercase letter
             word = word + '+'
-        pygame.image.save(rtext, os.path.join(output_path, word + ".png"))
+        if word.isupper():
+            pygame.image.save(rtext, os.path.join(output_path, word + ".png"))
+        else:
+            pygame.image.save(rtext, os.path.join(output_path, word + ".jpg"))
 
     remove_duplicated_images(output_path)
     process_image(output_path, size)
@@ -204,7 +207,13 @@ def check_image_exists(path, characters):
     for word in characters:
         if word in AZ:
             word = word + '+'
-        image = word + '.png'
+        
+        # Проверка наличия изображений в зависимости от регистра символа
+        if word.isupper():
+            image = word + '.png'
+        else:
+            image = word + '.jpg'
+            
         image_path = os.path.join(path, image)
         if not os.path.exists(image_path):
             print('no ', word)

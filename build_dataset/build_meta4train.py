@@ -9,7 +9,7 @@ from tqdm import tqdm
 import cv2
 import shutil
 import numpy as np
-from pathlib import Path
+
 
 def save_lmdb(env_path, font_path_char_dict):
     """[saving lmdb]
@@ -19,9 +19,10 @@ def save_lmdb(env_path, font_path_char_dict):
     Returns:
         [json]: {font name: [ch1, ch2, ch3, ch4, ....]}
     """
-    env = lmdb.open(env_path, map_size=1024 ** 3)
+    env = lmdb.open(env_path, map_size=(1024 ** 3)*3)
     valid_dict = {}
 
+    #write_file = open('log.txt', 'w', encoding='utf-8')
     for fname in tqdm(font_path_char_dict):
         fontpath = font_path_char_dict[fname]["path"]
         charlist = font_path_char_dict[fname]["charlist"]
@@ -30,33 +31,36 @@ def save_lmdb(env_path, font_path_char_dict):
             img_path = os.path.join(fontpath, char + '.png')
             if not os.path.exists(img_path):
                 img_path = os.path.join(fontpath, char + '.jpg')
-                if not os.path.exists(img_path):
-                    print(f"Image not found for: {img_path}")
-                    continue
+            
 
-            parts = char.split('_')
-            if len(parts) == 3:
-                char_type, char_letter, style = parts
-                uni = hex(ord(char_letter))[2:].upper()
+            if len(char) == 1:
+                uni = hex(ord(char))[2:].upper()
                 unilist.append(uni)
-                
-                try:
-                    pil_image = Image.open(img_path)
-                    char_img = np.array(pil_image)
-                    char_img = cv2.cvtColor(char_img, cv2.COLOR_RGB2BGR)
-                except Exception as e:
-                    print(f"Failed to read image: {img_path}. Error: {e}")
-                    continue
-                
+                pil_image = Image.open(img_path)
+
+                # Конвертировать изображение в черно-белое
+                pil_image = pil_image.convert('L')
+
+                # Преобразовать изображение в numpy array
+                char_img = np.array(pil_image)
+                # char_img = cv2.resize(char_img, (128, 128))
+
                 char_img = Image.fromarray(char_img)
                 img = io.BytesIO()
-                char_img.save(img, format="PNG")
+                if char.isupper():
+                    char_img.save(img, format="PNG")
+                else:
+                    char_img.save(img, format="JPEG")
+
                 img = img.getvalue()
                 lmdb_key = f"{fname}_{uni}".encode("utf-8")
+
                 with env.begin(write=True) as txn:
                     txn.put(lmdb_key, img)
             else:
-                print(f"Skipping invalid char format: {char}")
+                pass
+                # write_file.write(str(fontpath)+':')
+                # write_file.write(str(char)+'\n')
 
         valid_dict[fname] = unilist
 
@@ -64,15 +68,18 @@ def save_lmdb(env_path, font_path_char_dict):
 
 
 def getCharList(root):
+    """[get all characters this font exists]
+
+    Args:
+        root (string): folder path
+
+    Returns:
+        [list]: char list
+    """
     charlist = []
     for img_path in (glob.glob(root + '/*.jpg') + glob.glob(root + '/*.png')):
-        basename = os.path.basename(img_path).split('.')[0]
-        parts = basename.split('_')
-        if len(parts) == 3:
-            charlist.append(basename)  # Include the full name without extension
-        else:
-            print(f"Skipping invalid char format: {basename}")
-    print(f"Characters found in {root}: {charlist}")
+        ch = os.path.basename(img_path).split('.')[0]
+        charlist.append(ch)
     return charlist
 
 
@@ -93,9 +100,6 @@ def getMetaDict(font_path_list):
             "charlist": None
         }
         meta_dict[font_name]["charlist"] = getCharList(font_path)
-        # Debugging output to ensure files are read correctly
-        if not meta_dict[font_name]["charlist"]:
-            print(f"No characters found for font: {font_name} in path: {font_path}")
     return meta_dict
 
 
@@ -214,3 +218,5 @@ if __name__ == "__main__":
     args = parser.parse_args()
     build_meta4train_lmdb(args)
     build_train_meta(args)
+
+

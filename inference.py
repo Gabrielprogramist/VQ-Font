@@ -21,13 +21,14 @@ from datasets import get_fixedref_loader
 
 
 def getCharList(root):
+    '''
+    getCharList
+    '''
     charlist = []
     for img_path in glob(root + '/*.jpg') + glob(root + '/*.png'):
-        basename = os.path.basename(img_path).split('.')[0]
-        char = basename.split('_')[1]  # Extract the character part from the filename
-        charlist.append(char)
+        ch = os.path.basename(img_path).split('.')[0]
+        charlist.append(ch)
     return charlist
-
 
 
 def getMetaDict(image_root_list, content_name, cr_mapping):
@@ -44,8 +45,9 @@ def getMetaDict(image_root_list, content_name, cr_mapping):
         }
         meta_dict[font_name]["charlist"] = all_ch_list
 
+        # adaptively choose the possible inference unicodes according to the style unicodes you have.
         infer_unis = []
-        style_set = set(hex(ord(ch.split('_')[1]))[2:].upper() for ch in all_ch_list)
+        style_set = set(hex(ord(ch))[2:].upper() for ch in all_ch_list)
         for uni in cr_mapping:
             infer_unis.append(chr(int(uni, 16)))
 
@@ -55,7 +57,6 @@ def getMetaDict(image_root_list, content_name, cr_mapping):
     }
     meta_dict[content_name]["charlist"] = infer_unis
     return meta_dict
-
 
 
 def build_meta4build_dataset(meta_path, img_path_list, content_name, cr_mapping):
@@ -70,6 +71,9 @@ def build_meta4build_dataset(meta_path, img_path_list, content_name, cr_mapping)
 
 
 def build_testmeta4inference(target_name, target_root, content_name="kaiti_xiantu"):
+    '''
+    build_testmeta4inference
+    '''
     meta_file = os.path.join(target_root, "dataset_meta.json")
     save_path = os.path.join(target_root, "test.json")
     avali_set = {}
@@ -82,14 +86,13 @@ def build_testmeta4inference(target_name, target_root, content_name="kaiti_xiant
     # build test meta file
     test_dict = {
         "gen_fonts": [target_name],
-        "gen_unis": [chr(int(uni, 16)) for uni in original_meta[content_name]],
+        "gen_unis": original_meta[content_name],
         "ref_unis": target_ori_unis
     }
     with open(save_path, 'w', encoding='utf-8') as fout:
         json.dump(test_dict, fout, ensure_ascii=False, indent=4)
     print("test metafile save to ", save_path)
     return save_path, avali_set
-
 
 
 def build_dataset4inference(target_img_path, meta_path, content_root, lmdb_path, json_path, cr_mapping):
